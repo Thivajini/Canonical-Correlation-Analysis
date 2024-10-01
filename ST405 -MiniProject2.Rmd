@@ -1,0 +1,167 @@
+---
+title: "ST405-Mini Project"
+author: "S/18/824"
+date: "2024-05-21"
+output:
+  word_document: default
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Loading the necessary packages
+```{r}
+library(tidyverse)
+library(mvnormtest)
+library(CCA)
+library(ggplot2)
+library(skimr)
+library(psych)
+library(GGally)
+library(CCP)
+
+```
+
+Import the data set
+```{r}
+mmreg<-read_csv("../data/mmreg.csv")
+head(mmreg)
+```
+```{r}
+glimpse(mmreg)
+```
+This data set have records of 600 rows and 8 columns.
+
+```{r}
+str(mmreg)
+```
+check for missing values
+```{r}
+sum(is.na(mmreg))
+```
+In this data set no any missing values.
+
+
+Summary of the above data set
+```{r}
+summary(mmreg)
+skim(mmreg)
+```
+
+```{r}
+
+mshapiro.test(t(mmreg))
+```
+
+
+Standardized the variables.Because these are in different scale
+```{r}
+# Standardize the variables
+standard_mmreg_data <- as.data.frame(scale(mmreg))
+
+# Display the first few rows of the standardized data
+head(standard_mmreg_data)
+
+```
+Perform canonical correlation analysis
+##Separate the data set into two sets of variables: psychological variables and academic variables.
+```{r}
+# psychological variables
+psychology <- standard_mmreg_data[, c(1:3)]
+
+# academic
+academic <- standard_mmreg_data[, c(4:8)]
+
+# View the transformed data
+head(psychology)
+head(academic)
+
+```
+
+Check the correlation among variables in psychology varaibles set
+```{r}
+ggpairs(psychology)
+```
+Check the correlation among variables in academic varaibles set
+```{r}
+ggpairs(academic)
+```
+Correlation between two sets
+```{r}
+correlation <- matcor(psychology,academic)
+correlation
+img.matcor(correlation,type = 3)
+```
+Canonical correlation model
+```{r}
+cano_corr_model <- cc(psychology,academic)
+
+```
+Canonical correlations
+```{r}
+cano_corr_model$cor
+```
+raw canonical coefficients
+```{r}
+cano_corr_model[3:4]
+```
+compute canonical loadings
+```{r}
+cano_loadings <- comput(psychology, academic, cano_corr_model)
+
+# display canonical loadings
+cano_loadings[3:6]
+```
+
+Test the significance of canonical correlations
+```{r}
+rho <- cano_corr_model$cor
+n <- dim(psychology)[1]
+p <- length(psychology)
+q <- length(academic)
+
+#Wilk's test
+p.asym(rho,n,p,q,tstat = "Wilks")
+```
+
+
+Lawley-Hotelling test
+```{r}
+p.asym(rho,n,p,q,tstat = "Hotelling")
+```
+
+Pillai's test
+```{r}
+p.asym(rho,n,p,q,tstat = "Pillai")
+```
+
+Roy's largest root test
+```{r}
+p.asym(rho,n,p,q,tstat = "Roy")
+```
+
+
+Test the independence between two sets of variables
+```{r}
+result <- cancor(psychology,academic)
+r_squared <- result$cor * result$cor
+r_squared
+```
+```{r}
+# standardized psychological canonical coefficients diagonal matrix of psychology sd's
+s1 <- diag(sqrt(diag(cov(psychology))))
+s1 %*% cano_corr_model$xcoef
+
+```
+```{r}
+# standardized academic canonical coefficients diagonal matrix of academic sd's
+s2 <- diag(sqrt(diag(cov(academic))))
+s2 %*% cano_corr_model$ycoef
+
+```
+
+
